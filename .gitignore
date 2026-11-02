@@ -1,1 +1,13 @@
 .DS_Store
+.idea/
+.venv/
+__pycache__/
+*.pyc
+*.pt
+*.pth
+
+# Roboflow / Ultralytics download artifacts (train via scripts or Colab)
+groundingdino/data_collection/yolo/Logo-Detection-4/
+groundingdino/data_collection/yolo/soccer-2/
+groundingdino/data_collection/yolo/Sponsor-detector-2/
+groundingdino/data_collection/yolo/runs/
