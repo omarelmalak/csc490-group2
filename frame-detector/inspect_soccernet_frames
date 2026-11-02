@@ -1,0 +1,26 @@
+from huggingface_hub import snapshot_download
+
+if __name__ == "__main__":
+    import os
+    import tarfile
+
+    match_path = (
+        "spain_laliga/2016-2017/"
+        "2016-08-21 - 21-15 Real Sociedad 0 - 3 Real Madrid"
+    )
+
+    snapshot_download(
+        repo_id="SoccerNet/SoccerNet_raw_HQ",
+        repo_type="dataset",
+        revision="frames-720p-2fps",
+        local_dir="data/soccernet_frames",
+        allow_patterns=[
+            f"{match_path}/1.tar",
+            f"{match_path}/2.tar",
+        ],
+    )
+
+    for i in range(1, 3):
+        tar_path = os.path.join("data/soccernet_frames", match_path, f"{i}.tar")
+        with tarfile.open(tar_path) as tar:
+            tar.extractall(path=os.path.join("data/soccernet_frames", match_path))
