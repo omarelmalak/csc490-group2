@@ -1,78 +1,114 @@
+"""Extract match frames into wide_shots/ vs close_ups/.
+
+Classification (unchanged from original):
+  green_ratio > 0.40 → wide_shots
+  else               → close_ups
+
+Filenames are chronological by position in the video, e.g. frame_001245s.jpg
+= 1245 seconds from start. Extracting windows out of order still sorts correctly
+and re-extracting the same moment overwrites the same file.
+"""
+
+from __future__ import annotations
+
 import argparse
-import os
+from pathlib import Path
+
 import cv2
 import numpy as np
 
+from paths import FRAMED_VIDEOS_DIR, RAW_VIDEOS_DIR
 
-def extract_frames(video_file, duration_minutes, interval_seconds):
-    raw_video_path = f"data/input/raw_videos/{video_file}"
-    if not os.path.exists(raw_video_path):
-        raise FileNotFoundError(f"Video file not found at: {raw_video_path}")
 
-    video_file_name = video_file.split(".")[0]
-    output_dir_path = f"data/input/framed_videos/{video_file_name}"
+def time_filename(frame_idx: int, fps: float) -> str:
+    """Stable chronological name from absolute video frame index."""
+    total_seconds = int(frame_idx / fps)
+    # Include frame remainder so sub-second intervals do not collide.
+    rem = int(frame_idx % max(fps, 1.0))
+    return f"frame_{total_seconds:05d}s_{rem:02d}.jpg"
 
-    # Create the sorted subdirectories
-    wide_dir_path = os.path.join(output_dir_path, "wide_shots")
-    close_dir_path = os.path.join(output_dir_path, "close_ups")
-    os.makedirs(wide_dir_path, exist_ok=True)
-    os.makedirs(close_dir_path, exist_ok=True)
 
-    cap = cv2.VideoCapture(raw_video_path)
+def extract_frames(
+    video_file: str,
+    duration_minutes: float,
+    interval_seconds: float,
+    start_minutes: float = 0.0,
+) -> None:
+    raw_video_path = RAW_VIDEOS_DIR / video_file
+    if not raw_video_path.exists():
+        alt = Path("data/input/raw_videos") / video_file
+        if alt.exists():
+            raw_video_path = alt
+        else:
+            raise FileNotFoundError(f"Video file not found at: {raw_video_path}")
+
+    video_file_name = Path(video_file).stem
+    output_dir_path = FRAMED_VIDEOS_DIR / video_file_name
+    wide_dir_path = output_dir_path / "wide_shots"
+    close_dir_path = output_dir_path / "close_ups"
+    wide_dir_path.mkdir(parents=True, exist_ok=True)
+    close_dir_path.mkdir(parents=True, exist_ok=True)
+
+    cap = cv2.VideoCapture(str(raw_video_path))
     if not cap.isOpened():
         raise RuntimeError(f"Failed to open video file: {video_file}")
 
     video_fps = cap.get(cv2.CAP_PROP_FPS)
     total_video_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
     if video_fps <= 0:
         video_fps = 30.0
 
-    # Fixed syntax error here
-    max_frames_to_read = int(duration_minutes * 60 * video_fps)
-    max_frames_to_read = min(max_frames_to_read, total_video_frames)
+    start_frame = int(start_minutes * 60 * video_fps)
+    end_frame = int((start_minutes + duration_minutes) * 60 * video_fps)
+    end_frame = min(end_frame, total_video_frames)
+    if start_frame >= end_frame:
+        raise ValueError(
+            f"Invalid window: start_frame={start_frame} end_frame={end_frame} "
+            f"(video is {total_video_frames / (video_fps * 60):.1f} min)"
+        )
+
     frame_step = max(1, int(round(interval_seconds * video_fps)))
 
-    expected_saved_frames = (max_frames_to_read + frame_step - 1) // frame_step
-
+    print(f"Video: {raw_video_path}")
     print(f"Video FPS: {video_fps:.2f}")
     print(f"Total Video Duration: {total_video_frames / (video_fps * 60):.2f} minutes")
-    print(f"Target Duration: First {duration_minutes} minutes")
-    print(f"Processing up to frame index {max_frames_to_read} with step {frame_step}")
-    print(f"Estimated output frames: {expected_saved_frames}")
+    print(
+        f"Window: {start_minutes:.1f} → {start_minutes + duration_minutes:.1f} min "
+        f"(frames {start_frame}..{end_frame})"
+    )
+    print(f"Interval: every {interval_seconds}s (step {frame_step} frames)")
+    print("Naming: chronological frame_{seconds:05d}s_{rem:02d}.jpg from video time")
 
-    # Define color boundaries for the pitch once before the loop
+    cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+    current_frame_idx = start_frame
     lower_green = np.array([35, 40, 40])
     upper_green = np.array([85, 255, 255])
-
-    current_frame_idx = 0
     saved_count = 0
 
-    while current_frame_idx < max_frames_to_read:
+    while current_frame_idx < end_frame:
         ret, frame = cap.read()
         if not ret:
             print("Reached premature end of stream or unreadable frame.")
             break
 
-        if current_frame_idx % frame_step == 0:
-            # Calculate green grass ratio
+        if (current_frame_idx - start_frame) % frame_step == 0:
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
             mask = cv2.inRange(hsv, lower_green, upper_green)
             green_ratio = cv2.countNonZero(mask) / (frame.shape[0] * frame.shape[1])
 
-            frame_filename = f"frame_{saved_count:05d}.jpg"
+            frame_filename = time_filename(current_frame_idx, video_fps)
 
-            # Route to the appropriate folder based on classification
+            # Original rule: lots of grass → wide; otherwise → close-up
             if green_ratio > 0.40:
-                save_path = os.path.join(wide_dir_path, frame_filename)
+                save_path = wide_dir_path / frame_filename
             else:
-                save_path = os.path.join(close_dir_path, frame_filename)
+                save_path = close_dir_path / frame_filename
 
-            cv2.imwrite(save_path, frame)
+            cv2.imwrite(str(save_path), frame)
             saved_count += 1
 
             if saved_count % 50 == 0:
-                print(f"Extracted {saved_count} frames...")
+                print(f"Saved {saved_count} frames in this run... (last {frame_filename})")
 
         current_frame_idx += 1
 
@@ -82,25 +118,31 @@ def extract_frames(video_file, duration_minutes, interval_seconds):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Extract frames from the first X minutes of a match video."
+        description="Extract match frames; classify wide vs close-ups by grass ratio."
     )
     parser.add_argument(
         "--video",
         type=str,
         required=True,
-        help="Path to the source match video file.",
+        help="Filename under data/input/raw_videos/, e.g. athletico_real_2023.mp4",
     )
     parser.add_argument(
         "--minutes",
         type=float,
         default=15.0,
-        help="Number of minutes to extract from the start of the video (default: 15.0).",
+        help="How many minutes of video to process from the start offset (default: 15).",
+    )
+    parser.add_argument(
+        "--start-minutes",
+        type=float,
+        default=0.0,
+        help="Skip this many minutes from the beginning before extracting (default: 0).",
     )
     parser.add_argument(
         "--interval",
         type=float,
         default=1.0,
-        help="Capture interval in seconds between extracted frames (default: 1.0).",
+        help="Seconds between kept frames (default: 1.0).",
     )
 
     args = parser.parse_args()
@@ -108,4 +150,5 @@ if __name__ == "__main__":
         video_file=args.video,
         duration_minutes=args.minutes,
         interval_seconds=args.interval,
+        start_minutes=args.start_minutes,
     )
