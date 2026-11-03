@@ -169,10 +169,18 @@ local-data/groundingdino/data_collection/weights/yolo/logo_detector/best.pt
 
 ```bash
 cd csc490-group2/groundingdino/data_collection/yolo
-python download_datasets.py           # → data/yolo_train/roboflow/
-python build_merged_logo_dataset.py   # → data/yolo_train/merged_logo_detector/ (nc=1, names=[logo])
-python train_player_yolo.py           # default 25 epochs → weights/yolo/player_detector/best.pt
-python train_logo_yolo.py             # default 5 epochs  → weights/yolo/logo_detector/best.pt
+
+python eval_logo_detector.py \
+  --weights ../../../local-data/groundingdino/data_collection/weights/yolo/logo_detector/best.pt \
+  --images Sponsor-detector-2/valid/images \
+  --labels Sponsor-detector-2/valid/labels \
+  --limit 125 --conf 0.001
+
+python eval_logo_detector.py \
+  --weights ../../../local-data/groundingdino/data_collection/weights/yolo/logo_detector/best.pt \
+  --images Logo-Detection-4/train/images \
+  --labels Logo-Detection-4/train/labels \
+  --limit 200 --conf 0.001
 ```
 
 ---
@@ -283,4 +291,29 @@ General “logo on a car / chrome PNG” data transfers poorly to logos on shirt
 6. Run `auto_labeler.py` + both `yolo_labeler_*.py` (or `run_bakeoff.py --skip-train`).
 7. Diff annotated frames under `data/output/comparison/`.
 
-Do **not** commit `local-data/`, `*.pt`, `*.pth`, or Roboflow downloads. Commit script/doc changes only inside `csc490-group2/`.
+Do **not** commit `local-data/`, `*.pth`, or Roboflow downloads. The shared 25-epoch YOLO logo weight lives under `groundingdino/data_collection/bakeoff_artifacts/` and is committed intentionally for team review.
+
+---
+
+## 11. Logo detector quality check (quantitative)
+
+`BAKEOFF.md` is qualitative: it produces annotated frames and labels but has no
+ground truth for match footage. To check whether a logo `best.pt` is actually
+localizing logos rather than reacting to player context, evaluate it on the
+labeled source splits:
+
+```bash
+cd csc490-group2/groundingdino/data_collection/yolo
+
+python eval_logo_detector.py   --weights ../../../local-data/groundingdino/data_collection/weights/yolo/logo_detector/best.pt   --images Sponsor-detector-2/valid/images   --labels Sponsor-detector-2/valid/labels   --limit 125 --conf 0.001
+
+python eval_logo_detector.py   --weights ../../../local-data/groundingdino/data_collection/weights/yolo/logo_detector/best.pt   --images Logo-Detection-4/train/images   --labels Logo-Detection-4/train/labels   --limit 200 --conf 0.001
+```
+
+The 25-epoch class-agnostic weight and the match montage are committed under
+[`bakeoff_artifacts/`](bakeoff_artifacts/README.md). Full analysis:
+[`LOGO_DETECTOR_EVAL.md`](LOGO_DETECTOR_EVAL.md).
+
+Headline result: the 25-epoch checkpoint improves generic-logo recall at
+`conf=0.25` from 0.182 to 0.540, and increases wide-shot detections on the
+benchmark video from 33 to 58 boxes over 238 frames.
