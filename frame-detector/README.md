@@ -58,6 +58,53 @@ people, largest relative person height, and whether the green filter rejected
 the frame. This makes false positives and false negatives inspectable instead
 of reducing the experiment to one accuracy number.
 
+To tune thresholds without running YOLO again, use the cached CSV:
+
+```powershell
+python frame-detector\tune_heuristics.py
+```
+
+This searches a small grid of green lower/upper bounds and person-height
+thresholds. It assigns consecutive frame-ID blocks to validation and test
+sets, so adjacent frames are not randomly mixed between them. The best
+thresholds are selected using validation F1, then reported once on the held-out
+test blocks. Use `--beta 2` if preserving usable `close_up` frames is more
+important than precision; do not select thresholds using the test result.
+
+Because the current labels come from one match, this is still a preliminary
+tuning result. The final threshold should be checked on at least one separate
+match or broadcast style.
+
+### Heuristic tuner results
+
+The tuner was run on the currently labeled frames, excluding `uncertain`
+examples. The selected thresholds were:
+
+```text
+green_low=0.02
+green_high=0.90
+person_height=0.20
+```
+
+| Evaluation set | Accuracy | Precision | Recall | F1 | TP | FP | FN | TN |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Tuned validation | 0.841 | 1.000 | 0.356 | 0.409 | 36 | 0 | 65 | 308 |
+| Tuned test | 0.931 | 1.000 | 0.550 | 0.604 | 33 | 0 | 27 | 333 |
+| Default validation | 0.822 | 1.000 | 0.277 | 0.324 | 28 | 0 | 73 | 308 |
+| Default test | 0.913 | 1.000 | 0.433 | 0.489 | 26 | 0 | 34 | 333 |
+
+The tuned thresholds improve test accuracy, recall, and F1 over the original
+`green_low=0.05`, `green_high=0.85`, and `person_height=0.25` settings. The
+most meaningful improvement is recall: the tuned rule retains 55.0% of labeled
+`close_up` frames compared with 43.3% for the default rule. Both configurations
+have perfect precision on this test split, but both still miss many usable
+frames. This means the heuristic is conservative and useful as an interpretable
+baseline, but it should not yet be treated as a complete close-up classifier.
+
+These results are preliminary because the data comes from one match and the
+labels are temporally related. The tuned thresholds must be evaluated on
+additional matches before being adopted for the logo-detection pipeline.
+
 ## Gold-standard labels
 
 Label individual frames using the criteria above. During annotation, an

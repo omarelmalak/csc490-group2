@@ -32,9 +32,9 @@ def parse_args() -> argparse.Namespace:
         default=Path("data/frame-detector/heuristic_predictions.csv"),
     )
     parser.add_argument("--model", default="yolo11n.pt", help="Ultralytics YOLO weights.")
-    parser.add_argument("--green-low", type=float, default=0.05)
-    parser.add_argument("--green-high", type=float, default=0.85)
-    parser.add_argument("--person-height", type=float, default=0.25)
+    parser.add_argument("--green-low", type=float, default=0.02)
+    parser.add_argument("--green-high", type=float, default=0.9)
+    parser.add_argument("--person-height", type=float, default=0.2)
     parser.add_argument("--person-confidence", type=float, default=0.50)
     parser.add_argument("--green-hue-low", type=int, default=35)
     parser.add_argument("--green-hue-high", type=int, default=85)
