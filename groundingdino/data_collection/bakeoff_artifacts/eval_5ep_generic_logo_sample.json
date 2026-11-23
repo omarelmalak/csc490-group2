@@ -1,0 +1,39 @@
+{
+  "weights": "C:\\Users\\jzhij\\csc490-group2\\local-data\\groundingdino\\data_collection\\weights\\yolo\\logo_detector\\best.pt",
+  "images": 200,
+  "gt_boxes": 187,
+  "predictions_at_low_conf": 11654,
+  "matched_conf_median": 0.014836337883025408,
+  "matched_conf_p90": 0.2097719982266426,
+  "unmatched_conf_median": 0.0025734883965924382,
+  "unmatched_conf_p90": 0.020481332950294057,
+  "best_iou_median": 0.0,
+  "conf_0.05": {
+    "tp": 100,
+    "fp": 520,
+    "recall": 0.5347593582887701,
+    "precision": 0.16129032258064516,
+    "f1": 0.24783147459727387
+  },
+  "conf_0.1": {
+    "tp": 77,
+    "fp": 219,
+    "recall": 0.4117647058823529,
+    "precision": 0.26013513513513514,
+    "f1": 0.3188405797101449
+  },
+  "conf_0.25": {
+    "tp": 34,
+    "fp": 29,
+    "recall": 0.18181818181818182,
+    "precision": 0.5396825396825397,
+    "f1": 0.272
+  },
+  "conf_0.5": {
+    "tp": 6,
+    "fp": 3,
+    "recall": 0.03208556149732621,
+    "precision": 0.6666666666666666,
+    "f1": 0.06122448979591837
+  }
+}

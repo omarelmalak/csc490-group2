@@ -11,6 +11,14 @@ This project builds a deep learning system that detects sponsor logos on soccer 
 1. **Logo detection:** a YOLO-based object detector localizes logos in each frame.
 2. **Brand classification:** each detected logo is assigned to a sponsor brand.
 
+### Detector bake-off (GroundingDINO vs YOLO)
+
+Workflow 1 compares zero-shot GroundingDINO vs fine-tuned YOLOv8 player/logo detectors on the same close-up frames. Scripts and full setup (where to put weights, videos, frames, and outputs under `local-data/`) are documented in:
+
+**[`groundingdino/data_collection/BAKEOFF.md`](groundingdino/data_collection/BAKEOFF.md)**
+
+Branch: `omar-benchmark-groundingdino-yolo`.
+
 
 ## Datasets
  
