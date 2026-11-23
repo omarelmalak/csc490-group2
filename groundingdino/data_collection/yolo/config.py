@@ -11,6 +11,7 @@ if str(_DC) not in sys.path:
     sys.path.insert(0, str(_DC))
 
 from paths import (  # noqa: E402
+    INPUT_DIR,
     LOGO_WEIGHTS,
     MERGED_LOGO_DIR,
     PLAYER_WEIGHTS,
@@ -18,6 +19,9 @@ from paths import (  # noqa: E402
     YOLO_RUNS_DIR,
     YOLO_WEIGHTS_DIR,
 )
+
+BRAND_ASSETS_DIR = INPUT_DIR / "brand_assets"
+JERSEY_SYNTH_DIR = YOLO_DATA_DIR / "jersey_synth_riyadh_hyundai"
 
 ROBOFLOW_API_KEY = "A1UDb8W87l9RzmQ4CMlU"
 
@@ -55,4 +59,7 @@ __all__ = [
     "MERGED_LOGO_DIR",
     "PLAYER_WEIGHTS",
     "LOGO_WEIGHTS",
+    "INPUT_DIR",
+    "BRAND_ASSETS_DIR",
+    "JERSEY_SYNTH_DIR",
 ]
